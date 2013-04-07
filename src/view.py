@@ -46,12 +46,17 @@ class BCAView(Frame):
 			self.ORIGIN_X + self.BLOCK_W, 
 			self.ORIGIN_Y + self.BLOCK_H,
 			fill=self.ORIGIN_FILL)
+		canvas.create_line(0, self.ORIGIN_Y + (self.BLOCK_H/2),
+			self.ORIGIN_X, self.ORIGIN_Y + (self.BLOCK_H/2),
+			fill=self.ORIGIN_FILL,
+			width=3.0)
 		self.counter = canvas.create_text(
 			self.COUNTER_X, 
 			self.COUNTER_Y,
 			anchor=NW)
 		canvas.pack(fill=BOTH, expand=1)
 		self.canvas = canvas
+		self.addHonestNode()
 		self.after(self.DELAY, self.update)
 
 	def update(self):
@@ -72,6 +77,58 @@ class BCAView(Frame):
 		if self.malicious_node_count < self.MAX_NODES \
 			and self.honest_node_count < self.MAX_NODES:
 			self.after(self.DELAY, self.update)
+		else:
+			self.finish()
+	
+	def finish(self):
+		pass
+
+	def getBlock(self, filename):
+		with open(filename, 'r') as f:
+			blockchain = [line[:-1] if line.endswith('\n')
+				else line 
+				for line in f]
+			return blockchain[-1]
+
+	def addHonestNode(self):
+		self.honest_node_count += 1
+		x1 = self.ORIGIN_X \
+			+ self.honest_node_count \
+			* (self.BLOCK_W + self.BLOCK_PADDING)
+		x2 = x1 + self.BLOCK_W
+		y1 = self.ORIGIN_Y
+		y2 = y1 + self.BLOCK_H
+		self.canvas.create_rectangle(x1, y1, x2, y2,
+			fill=self.HONEST_FILL)
+		lx1 = x1 - self.BLOCK_PADDING
+		ly1 = y1 + (self.BLOCK_H/2)
+		lx2 = x1
+		ly2 = ly1
+		self.canvas.create_line(lx1, ly1, lx2, ly2,
+			fill=self.HONEST_FILL,
+			width=3.0)
+
+	def addMaliciousNode(self):
+		self.malicious_node_count += 1
+		x1 = self.ORIGIN_X \
+			+ self.malicious_node_count \
+			* (self.BLOCK_W + self.BLOCK_PADDING)
+		x2 = x1 + self.BLOCK_W
+		y1 = self.ORIGIN_Y + self.BLOCK_H + self.BLOCK_PADDING
+		y2 = y1 + self.BLOCK_H
+		self.canvas.create_rectangle(x1, y1, x2, y2,
+			fill=self.MALICIOUS_FILL)
+		if self.malicious_node_count == 1:
+			lx1 = self.ORIGIN_X + (self.BLOCK_W/2)
+			ly1 = self.ORIGIN_Y + self.BLOCK_H
+		else:
+			lx1 = x1 - self.BLOCK_PADDING
+			ly1 = y1 + (self.BLOCK_H/2)
+		lx2 = x1
+		ly2 = y1 + (self.BLOCK_H/2)
+		self.canvas.create_line(lx1, ly1, lx2, ly2,
+			fill=self.MALICIOUS_FILL,
+			width=3.0)
 	
 	def updateCounter(self):
 		text = ("Honest Miners:\t{honest}\n" 
@@ -111,34 +168,6 @@ class BCAView(Frame):
 	def notifyMiner(self, miner):
 		miner.send_signal(signal.SIGUSR1)
 
-	def getBlock(self, filename):
-		with open(filename, 'r') as f:
-			blockchain = [line[:-1] if line.endswith('\n')
-				else line 
-				for line in f]
-			return blockchain[-1]
-
-	def addHonestNode(self):
-		self.honest_node_count += 1
-		x1 = self.ORIGIN_X \
-			+ self.honest_node_count \
-			* (self.BLOCK_W + self.BLOCK_PADDING)
-		x2 = x1 + self.BLOCK_W
-		y1 = self.ORIGIN_Y
-		y2 = y1 + self.BLOCK_H
-		self.canvas.create_rectangle(x1, y1, x2, y2,
-			fill=self.HONEST_FILL)
-
-	def addMaliciousNode(self):
-		self.malicious_node_count += 1
-		x1 = self.ORIGIN_X \
-			+ self.malicious_node_count \
-			* (self.BLOCK_W + self.BLOCK_PADDING)
-		x2 = x1 + self.BLOCK_W
-		y1 = self.ORIGIN_Y + self.BLOCK_H + self.BLOCK_PADDING
-		y2 = y1 + self.BLOCK_H
-		self.canvas.create_rectangle(x1, y1, x2, y2,
-			fill=self.MALICIOUS_FILL)
 
 def cleanup():
 	bcaview.killHonestMiners()
@@ -162,6 +191,8 @@ if __name__ == "__main__":
 	signal.signal(signal.SIGINT, lambda signum, frame: cleanup())
 	root.bind("h", lambda event: bcaview.addHonestMiner())
 	root.bind("m", lambda event: bcaview.addMaliciousMiner())
+	root.bind("H", lambda event: bcaview.killHonestMiner())
+	root.bind("M", lambda event: bcaview.killMaliciousMiner())
 	root.protocol("WM_DELETE_WINDOW", cleanup)
 	root.geometry("%dx%d+%d+%d" % (WINDOW_W, WINDOW_H, 
 		WINDOW_OFFSET_X, WINDOW_OFFSET_Y))
