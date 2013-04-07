@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from subprocess import call
 HONEST_FILE = "data/honest"
 MALICIOUS_FILE = "data/malicious"

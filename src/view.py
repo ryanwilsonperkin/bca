@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import signal, subprocess, argparse
 from Tkinter import Tk, Canvas, Frame, BOTH, NW
 
@@ -21,6 +22,7 @@ class BCAView(Frame):
 	DELAY = 500
 	MAX_HONEST_MINERS = 10
 	MAX_MALICIOUS_MINERS = 10
+	MAX_NODES = 13
 
 	def __init__(self, parent, honest_file, malicious_file, miner_program):
 		Frame.__init__(self, parent)
@@ -35,7 +37,6 @@ class BCAView(Frame):
 		self.honest_block = self.getBlock(self.honest_file)
 		self.malicious_block = self.getBlock(self.malicious_file)
 		self.setup()
-		self.updateCounter()
 
 	def setup(self):
 		self.parent.title(self.TITLE)
@@ -68,7 +69,9 @@ class BCAView(Frame):
 			for miner in self.malicious_miners:
 				self.notifyMiner(miner)
 		self.updateCounter()
-		self.after(self.DELAY, self.update)
+		if self.malicious_node_count < self.MAX_NODES \
+			and self.honest_node_count < self.MAX_NODES:
+			self.after(self.DELAY, self.update)
 	
 	def updateCounter(self):
 		text = ("Honest Miners:\t{honest}\n" 
@@ -157,9 +160,10 @@ if __name__ == "__main__":
 		args.malicious_file,
 		args.miner_program)
 	signal.signal(signal.SIGINT, lambda signum, frame: cleanup())
-	root.protocol("WM_DELETE_WINDOW", cleanup)
 	root.bind("h", lambda event: bcaview.addHonestMiner())
 	root.bind("m", lambda event: bcaview.addMaliciousMiner())
+	root.protocol("WM_DELETE_WINDOW", cleanup)
 	root.geometry("%dx%d+%d+%d" % (WINDOW_W, WINDOW_H, 
 		WINDOW_OFFSET_X, WINDOW_OFFSET_Y))
+	root.resizable(0,0)
 	root.mainloop()
